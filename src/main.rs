@@ -19,9 +19,9 @@ fn show_conf() {
     }
     println!("{}", conf_res.unwrap_err());
     println!("Creating config files...");
-    let write_res = config.init_config();
-    if write_res.is_err() {
-        println!("{}", write_res.unwrap_err());
+    let init_res = config.init_config();
+    if init_res.is_err() {
+        println!("{}", init_res.unwrap_err());
     }
     let conf_retry_res = config.read_config();
     if conf_retry_res.is_ok() {
@@ -79,7 +79,12 @@ fn auto_search() {
 }
 
 fn reset() {
-    println!("Work in progress!");
+    let mut config = Config::default();
+    let write_res = config.init_config();
+    if write_res.is_err() {
+        println!("{}", write_res.unwrap_err());
+    }
+    println!("Reset done");
 }
 
 fn main() {
