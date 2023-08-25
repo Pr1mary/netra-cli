@@ -28,10 +28,14 @@ impl Config {
         let file_name = String::from("config.toml");
 
         if curr_os == "windows"{
-            return Ok("C:\\ProgramData\\Netra\\config.toml".to_owned());
+            let mut path = "C:\\ProgramData\\Netra\\".to_owned();
+            path.push_str(file_name.as_str());
+            return Ok(path);
         }
         if curr_os == "linux" {
-            return Ok("/etc/netra/config.toml".to_owned());
+            let mut path = "/etc/netra/".to_owned();
+            path.push_str(file_name.as_str());
+            return Ok(path);
         }
         return Err("OS not supported".to_owned());
     }
@@ -68,7 +72,35 @@ impl Config {
         return Ok(());
     }
 
+    pub fn set_port(&mut self, port: String) -> Result<(), String> {
+        let write_status = self.write_file(port, self.baud);
+        if write_status.is_err() {
+            return Err(write_status.unwrap_err());
+        }
+        return Ok(());
+    }
+
+    pub fn set_baud(&mut self, baud: u32) -> Result<(), String> {
+        let write_status = self.write_file(self.port.to_owned(), baud);
+        if write_status.is_err() {
+            return Err(write_status.unwrap_err());
+        }
+        return Ok(());
+    }
+
     pub fn init_config(&mut self) -> Result<(), String> {
+        self.port = String::new();
+        self.baud = 19200;
+
+        let write_status = self.write_file(self.port.to_owned(), self.baud);
+        if write_status.is_err() {
+            return Err(write_status.unwrap_err());
+        }
+
+        return Ok(());
+    }
+
+    pub fn read_config(&mut self) -> Result<(), String> {
         let check_os_path = self.check_os();
         if check_os_path.is_err() {
             return Err(check_os_path.unwrap_err());
