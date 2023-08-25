@@ -1,18 +1,16 @@
-use toml;
+use toml::{self, to_string};
 // use serde;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::env;
-use std::fs;
-use std::io::Read;
-// use std::io::{self, Write};
-// use std::path;
+use std::fs::File;
+use std::io::{Read, Write};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct ConfigFile {
     client: Client,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct Client {
     port: String,
     baud: u32,
@@ -25,28 +23,65 @@ pub struct Config {
 }
 
 impl Config {
-    fn fetch_file(&self, file_path: String) -> Result<String, bool> {
+    fn check_os(&self) -> Result<String, String> {
+        let curr_os = (env::consts::OS).to_owned();
+        let file_name = String::from("config.toml");
+
+        if curr_os == "windows"{
+            return Ok("C:\\ProgramData\\Netra\\config.toml".to_owned());
+        }
+        if curr_os == "linux" {
+            return Ok("/etc/netra/config.toml".to_owned());
+        }
+        return Err("OS not supported".to_owned());
+    }
+
+    fn read_file(&self, file_path: String) -> Result<String, String> {
         let mut data = String::new();
-        let mut file = fs::File::open(file_path).expect("Failed to open file");
-        file.read_to_string(&mut data).expect("Failed to read file");
-        return Ok(data);
+        let file = File::open(file_path);
+        if file.is_ok() {
+            file.unwrap()
+                .read_to_string(&mut data)
+                .expect("Failed to read file");
+            return Ok(data);
+        }
+        return Err(file.unwrap_err().to_string());
+    }
+
+    pub fn write_file(&mut self, port: String, baud: u32) -> Result<(), String> {
+        let conf_str = to_string(&ConfigFile {
+            client: Client { port, baud },
+        });
+        let curr_os_path = self.check_os();
+        if curr_os_path.is_err() {
+            return Err(curr_os_path.unwrap_err());
+        }
+        let file_path = curr_os_path.unwrap();
+        let file = File::create(file_path.to_owned());
+        if file.is_err() || conf_str.is_err() {
+            return Err("Write failed error".to_owned());
+        }
+        let write_res = file.unwrap().write_all(conf_str.unwrap().as_bytes());
+        if write_res.is_err() {
+            return Err("Write failed error".to_owned());
+        }
+        return Ok(());
     }
 
     pub fn init_config(&mut self) -> Result<(), String> {
-        let curr_os = (env::consts::OS).to_owned();
+        let check_os_path = self.check_os();
+        if check_os_path.is_err() {
+            return Err(check_os_path.unwrap_err());
+        }
 
         let mut _conf_data = String::new();
+        let file_path = check_os_path.unwrap();
 
-        if curr_os == "windows" {
-            _conf_data = self
-                .fetch_file("C:/ProgramData/Netra/config.toml".to_owned())
-                .unwrap();
-        } else if curr_os == "linux" {
-            _conf_data = self
-                .fetch_file("/etc/netra/config.toml".to_owned())
-                .unwrap();
+        let fetch_data = self.read_file(file_path);
+        if fetch_data.is_ok() {
+            _conf_data = fetch_data.unwrap();
         } else {
-            return Err("OS not supported".to_owned());
+            return Err(fetch_data.unwrap_err());
         }
 
         let config: ConfigFile = toml::from_str(&_conf_data).unwrap();

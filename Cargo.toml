@@ -10,3 +10,4 @@ serialport = "4.2.0"
 chrono = "0.4.24"
 toml = "0.7.6"
 serde = { version = "1.0.183", features = ["derive"] }
+clap = { version = "4.3.23", features = ["derive"] }
