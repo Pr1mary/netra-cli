@@ -22,6 +22,9 @@ pub enum Command {
     /// Auto search for connected netra client, should return port name -- !! work in progress !!
     Auto,
 
+    /// Test current configuration
+    Test,
+
     /// Reset the configuration
     Reset,
 }
