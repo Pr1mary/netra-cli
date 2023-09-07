@@ -49,11 +49,15 @@ impl Serial {
         }
     }
 
-    pub fn test_connection(&self, port: String, baud: u32, time_till_timeout: u128) -> bool {
+    pub fn test_connection(
+        &self,
+        port: String,
+        baud: u32,
+        time_till_timeout: u128,
+    ) -> (bool, String) {
         let port_con = self.connection_v2(port.to_owned(), baud);
         if port_con.is_err() {
-            println!("Port not available");
-            return false;
+            return (false, "Port not available".to_owned());
         }
         let mut port_con = port_con.unwrap();
         let mut last_time = 0;
@@ -61,23 +65,31 @@ impl Serial {
         let mut loop_ms = 0;
         let mut timeout_ms = 0;
         let timer = Instant::now();
+        let mut started = false;
+        let mut ask_for_status = 0;
         while timeout_ms < time_till_timeout {
-            let mut str_read = String::new();
-            let mut _err = port_con.read_to_string(&mut str_read).unwrap_err();
-            if str_read.trim() == "ALIVE" {
-                return true;
-            }
-            if loop_ms > 1000 {
+            if !started || loop_ms > 1000 {
+                started = true;
                 loop_ms = 0;
                 port_con.write("STATUS".as_bytes()).expect("Write failed!");
                 port_con.flush().expect("Error flush");
+            }
+            let mut str_read = String::new();
+            let mut _err = port_con.read_to_string(&mut str_read).unwrap_err();
+            if str_read.trim().to_owned() == "ALIVE" {
+                return (true, String::new());
+            }
+            else if str_read.trim().to_owned() == "STATUS" {
+                ask_for_status+=1;
             }
             delta_time = timer.elapsed().as_millis() - last_time;
             last_time = timer.elapsed().as_millis();
             loop_ms += delta_time;
             timeout_ms += delta_time;
         }
-        println!("Client not found on current config");
-        return false;
+        if ask_for_status > 3 {
+            return (true, String::new());
+        }
+        return (false, "Client not found on current config".to_owned());
     }
 }

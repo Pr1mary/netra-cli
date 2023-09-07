@@ -2,11 +2,16 @@ mod args_helper;
 mod config_helper;
 mod serial_helper;
 
+use std::{
+    io::{self, Write},
+    thread::{self, JoinHandle},
+};
+
 use args_helper::{ArgCli, Command, SetConf};
 use config_helper::Config;
 use serial_helper::Serial;
 
-use clap::Parser;
+use clap::{builder, Parser};
 
 fn show_conf() {
     let mut config = Config::default();
@@ -93,12 +98,15 @@ fn auto_search() {
     }
     println!("Search for port...");
     for port in list_port.to_owned() {
+        print!("Testing port {}: ", port);
+        io::stdout().flush().expect("Error flush");
         let result = serial.test_connection(port.to_owned(), baud, 5000);
-        if result == true {
+        if result.0 == true {
             port_list.push(port.to_owned());
             port_list_str += port.as_str();
             port_list_str += " ";
         }
+        println!("Done");
     }
     if port_list.len() == 0 {
         println!("Client device not found!");
@@ -125,12 +133,14 @@ fn test() {
     let mut config = Config::default();
     let read_res = config.read_config();
     if read_res.is_err() {
-        println!("{}", read_res.unwrap_err());
+        println!("Msg: {}", read_res.unwrap_err());
+        println!("Status: Fail");
         return;
     }
     println!("Testing connection...");
     let result = serial.test_connection(config.get_port(), config.get_baud(), 5000);
-    if result == false {
+    if result.0 == false {
+        println!("Msg: {}", result.1);
         println!("Status: Fail");
         return;
     }
