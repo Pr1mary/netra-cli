@@ -124,8 +124,9 @@ fn reset() {
     let write_res = config.init_config();
     if write_res.is_err() {
         println!("{}", write_res.unwrap_err());
+    }else{
+        println!("Reset done");
     }
-    println!("Reset done");
 }
 
 fn test() {

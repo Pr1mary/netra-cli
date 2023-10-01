@@ -63,11 +63,13 @@ impl Config {
         let file_path = curr_os_path.unwrap();
         let file = File::create(file_path.to_owned());
         if file.is_err() || conf_str.is_err() {
-            return Err("Write failed error".to_owned());
+            return Err(file.unwrap_err().to_string());
+            // return Err("Write failed error".to_owned());
         }
         let write_res = file.unwrap().write_all(conf_str.unwrap().as_bytes());
         if write_res.is_err() {
-            return Err("Write failed error".to_owned());
+            return Err(write_res.unwrap_err().to_string());
+            // return Err("Write failed error".to_owned());
         }
         return Ok(());
     }
